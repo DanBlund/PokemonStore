@@ -1,0 +1,118 @@
+﻿@page "/checkout"
+@using PokemonStore.Data
+@using PokemonStore.Models
+@rendermode RenderMode.InteractiveServer
+@inject ILocalStorageService localStorage
+@inject NavigationManager NavigationManager
+@inject DataAccess dataAccess
+
+<h3>Checkout</h3>
+
+
+<table class="table table-light">
+    <thead class="table-primary">
+        <tr>
+            <th></th>
+            <th>Item</th>
+            <th>Amount</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var pokemon in InCart)
+        {
+            @if (CheckIfUnique(pokemon.Id))
+            {
+                <tr>
+                    <td><img src="@($"{pokemon.ImgUrl}")" class="rounded-circle small-image" /></td>
+                    <td>@pokemon.Name</td>
+                    <td>@CountItems(pokemon.Id)</td>
+                    <td>
+                        <button class="btn btn-outline-primary" @onclick="() => OnRemoveClick(pokemon)">
+                            Remove
+                        </button>
+                    </td>
+                </tr>            
+            }
+        }
+    </tbody>
+</table>
+<br />
+
+<EditForm Model="deliveryInfo" OnSubmit="HandleSubmit" FormName="CartForm">
+    <label for="name">Name</label>
+    <InputText Name="name" @bind-Value="deliveryInfo.Name"></InputText>
+    <label for="adress">Adress</label>
+    <InputText Name="adress" @bind-Value="deliveryInfo.Adress"></InputText>
+    <button type="submit" class="btn btn-primary" @onclick="HandleSubmit">Submit</button>
+</EditForm>
+
+
+@code {
+    // När vi trycker på Submit kommer värdena sparas i cart här nere
+    [SupplyParameterFromForm]
+    public DeliveryInfo deliveryInfo { get; set; } = new DeliveryInfo();
+
+    public List<Pokemon> InCart { get; set; } = new List<Pokemon>();
+
+    List<int> pokeminAdded = new List<int>();
+
+    public bool CheckIfUnique(int pokemonId)
+    {  
+        if (pokeminAdded.Contains(pokemonId))
+            return false;
+        else
+        {
+            pokeminAdded.Add(pokemonId);
+            return true;
+        }
+    }
+
+    public int CountItems(int itemId)
+    {
+        var count = InCart.Where(item => item.Id == itemId).Count();
+        return count;
+    }
+
+    public async Task HandleSubmit()
+    {
+        await localStorage.SetItemAsync<List<Pokemon>>("ItemCart", InCart);
+        await localStorage.SetItemAsync<DeliveryInfo>("DeliveryInfo", deliveryInfo);
+        foreach (Pokemon pokemon in InCart)
+        {
+            int countInCart = CountItems(pokemon.Id);
+            if (countInCart > pokemon.InStock)
+            {
+                // Felmeddelande
+                break;
+            }
+            else
+            {
+                pokemon.InStock -= countInCart;
+                await dataAccess.UpdatePokemon(pokemon);
+                NavigationManager.NavigateTo("/exit");
+            }
+        }
+
+    }
+
+    public async Task OnRemoveClick(Pokemon pokemon)
+    {
+        InCart.Remove(pokemon);
+        await localStorage.SetItemAsync<List<Pokemon>>("ItemCart", InCart);
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var CartData = await localStorage.GetItemAsync<List<Pokemon>>("ItemCart");
+            if (CartData is not null)
+                InCart = CartData;
+            StateHasChanged();           
+        }
+    }
+
+
+}

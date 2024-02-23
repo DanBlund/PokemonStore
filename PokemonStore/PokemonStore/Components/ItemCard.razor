@@ -1,0 +1,33 @@
+﻿@using PokemonStore.Models
+@rendermode RenderMode.InteractiveServer
+@inject ILocalStorageService localStorage
+
+
+    
+
+<div class="card" style="width: 18rem;">
+    <a href="@($"/pokemondetails/{Pokemon.Id}")">
+        <img class="card-img-top item-image" src="@($"{Pokemon.ImgUrl}")" alt="Card image cap">
+    </a>
+    <div class="card-body">
+        <h5 class="card-title">@Pokemon.Name</h5>
+        <p class="card-text">Price: @Pokemon.PriceSek</p>
+        <p class="card-text">In Stock: @Pokemon.InStock</p>
+
+            <button class="col-12 btn @(DisableBuy == true ? "disabled btn-outline-danger" : "btn-outline-primary")" @onclick="OnAddToCartCallback">
+                @(DisableBuy == true ? "Sold out" : "Add To Cart")
+            </button>
+
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public Pokemon Pokemon { get; set; }
+    [Parameter]
+    public EventCallback OnAddToCartCallback { get; set; }
+    [Parameter]
+    public bool DisableBuy { get; set; }
+
+}

@@ -1,0 +1,74 @@
+﻿@page "/pokemondetails/{pokemonId:int}"
+@using PokemonStore.Data
+@using PokemonStore.Models
+@rendermode RenderMode.InteractiveServer
+@inject DataAccess dataAccess
+@inject ILocalStorageService localStorage
+
+@if (pokemon is null)
+{
+    <p>No Pokemon found...</p>
+}
+else
+{
+    <img class="card-img-top detail-img" src="@($"{pokemon.ImgUrl}")" alt="Card image cap">
+    <br />
+    <br />
+    <h3>ItemDetails</h3>
+    <p>Id: @pokemonId</p>
+    <p>Name: @pokemon.Name</p>
+    <p>Price: @pokemon.PriceSek</p>
+    <p>Stock: @pokemon.InStock</p>
+    <p>Description: @pokemon.Description</p>
+    <button class="btn @(DisableBuy == true ? "disabled btn-outline-danger" : "btn-outline-primary")" @onclick="() => AddToCart(pokemon)">
+        @(DisableBuy == true ? "Sold out" : "Add To Cart")
+    </button>
+    <br />
+    <br />
+}
+
+
+@code {
+    [Parameter]
+    public int pokemonId { get; set; }
+
+    [Parameter]
+    public Pokemon pokemon { get; set; }
+
+    public List<Pokemon> InCart { get; set; } = new List<Pokemon>();
+    public bool DisableBuy { get; set; }
+
+    public void DisabelBuy(Pokemon pokemon)
+    {
+        var count = InCart.Where(item => item.Id == pokemon.Id).Count();
+        if (count >= pokemon.InStock)
+            DisableBuy = true;
+        else
+            DisableBuy = false;
+    }
+
+    public async Task AddToCart(Pokemon pokemon)
+    {
+        InCart.Add(pokemon);
+        await localStorage.SetItemAsync<List<Pokemon>>("ItemCart", InCart);
+        DisabelBuy(pokemon);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var CartData = await localStorage.GetItemAsync<List<Pokemon>>("ItemCart");
+        if (CartData is not null)
+            InCart = CartData;
+
+        DisabelBuy(pokemon);
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await dataAccess.GetPokemonById(pokemonId);
+        if (result is not null)
+            pokemon = result;
+
+    }
+}

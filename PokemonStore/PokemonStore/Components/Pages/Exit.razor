@@ -1,0 +1,70 @@
+﻿@page "/exit"
+@using PokemonStore.Models
+@rendermode RenderMode.InteractiveServer
+@inject ILocalStorageService localStorage
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<h3>Tack för ditt besök</h3>
+<br />
+<h4>Du köpte</h4>
+
+<table class="table table-light">
+    <thead class="table-primary">
+        <tr>
+            <th>Item</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in InCart)
+        {
+            <tr>
+                <td>@item.Name</td>
+            </tr>
+        }
+    </tbody>
+</table>
+<br />
+<h4>Ordern skickas till:</h4>
+<p>@deliveryInfo.Name</p>
+<p>@deliveryInfo.Adress</p>
+
+
+
+@code {
+    public List<Pokemon> InCart { get; set; } = new List<Pokemon>();
+    public DeliveryInfo deliveryInfo { get; set; } = new DeliveryInfo();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var ItemCartData = await localStorage.GetItemAsync<List<Pokemon>>("ItemCart");
+            var DeliveryInfoData = await localStorage.GetItemAsync<DeliveryInfo>("DeliveryInfo");
+
+            if (ItemCartData is not null)
+                InCart = ItemCartData;
+            if (DeliveryInfoData is not null)
+                deliveryInfo = DeliveryInfoData;
+
+            await localStorage.SetItemAsync<List<Pokemon>>("ItemCart", new List<Pokemon>());
+
+            StateHasChanged();
+        }
+
+    }
+
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     var ItemCartData = await localStorage.GetItemAsync<List<Item>>("ItemCart");
+    //     var CartData = await localStorage.GetItemAsync<Cart>("MyCart");
+
+    //     if (ItemCartData is not null)
+    //         CartList = ItemCartData;
+    //     if (CartData is not null)
+    //         cart = CartData;
+
+    //     await localStorage.SetItemAsync<List<Item>>("ItemCart", EmptyCart);
+
+    //     StateHasChanged();
+    // }
+}

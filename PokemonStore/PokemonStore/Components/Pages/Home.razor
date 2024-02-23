@@ -1,0 +1,61 @@
+﻿@page "/"
+@using PokemonStore.Data
+@using PokemonStore.Models
+@rendermode RenderMode.InteractiveServer
+@inject DataAccess dataAccess
+@inject ILocalStorageService localStorage
+
+<PageTitle>Products</PageTitle>
+
+<h1>Products</h1>
+
+<div class="d-flex justify-content-start flex-wrap items-container col-8">
+    @foreach (var pokemon in AllPokemons)
+    {
+        DisabelBuy(pokemon);
+        <div class="m-2">
+            <ItemCard Pokemon="pokemon" DisableBuy="disableBuy" OnAddToCartCallback="() => AddToCart(pokemon)"></ItemCard>
+        </div>
+    }
+</div>
+
+@code {
+    public List<Pokemon> InCart { get; set; } = new List<Pokemon>();
+    public List<Pokemon> AllPokemons { get; set; } = new List<Pokemon>();
+    public bool disableBuy;
+
+    public async Task AddToCart(Pokemon pokemon)
+    {
+        InCart.Add(pokemon);
+        await localStorage.SetItemAsync<List<Pokemon>>("ItemCart", InCart);
+        StateHasChanged();
+    }
+
+    public void DisabelBuy(Pokemon pokemon)
+    {
+        var count = InCart.Where(item => item.Id == pokemon.Id).Count();
+        if (count >= pokemon.InStock)
+            disableBuy = true;
+        else
+            disableBuy = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var CartData = await localStorage.GetItemAsync<List<Pokemon>>("ItemCart");
+            if (CartData is not null)
+                InCart = CartData;
+
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await dataAccess.GetAllPokemon();
+        if(result is not null)
+            AllPokemons = result;
+    }
+}
